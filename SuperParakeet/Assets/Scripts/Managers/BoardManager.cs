@@ -21,9 +21,11 @@ namespace CardMatch.Managers
 
         private List<Card> spawnedCards = new();
         private int rows;
-        private int columns;        /// <summary>
-                                    /// Generate a new game board
-                                    /// </summary>
+        private int columns;        
+        
+        /// <summary>
+        /// Generate a new game board
+        /// </summary>
         public void GenerateBoard(int rows, int columns)
         {
             ClearBoard();
@@ -78,9 +80,10 @@ namespace CardMatch.Managers
             for (int i = deck.Count - 1; i > 0; i--)
             {
                 int randomIndex = Random.Range(0, i + 1);
-                var temp = deck[i];
+                // TODO:: Revisit this to verify if this is the correct way to swap
+                /* var temp = deck[i];
                 deck[i] = deck[randomIndex];
-                deck[randomIndex] = temp;
+                deck[randomIndex] = temp; */
             }
         }
 
