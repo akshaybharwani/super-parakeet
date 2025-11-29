@@ -8,19 +8,17 @@ namespace CardMatch.Data
     [CreateAssetMenu(fileName = "NewCardData", menuName = "CardMatch/Card Data")]
     public class CardData : ScriptableObject
     {
-        [SerializeField] private int _id;
-        [SerializeField] private Sprite _icon;
-        [SerializeField] private string _cardName;
+        [SerializeField] private int id;
 
-        public int Id => _id;
-        public Sprite Icon => _icon;
-        public string CardName => _cardName;
-        public static CardData Create(int id, Sprite icon, string name = "")
+        public int Id => id;
+
+        /// <summary>
+        /// Create a runtime instance of CardData
+        /// </summary>
+        public static CardData Create(int id)
         {
             var data = CreateInstance<CardData>();
-            data._id = id;
-            data._icon = icon;
-            data._cardName = name;
+            data.id = id;
             return data;
         }
     }

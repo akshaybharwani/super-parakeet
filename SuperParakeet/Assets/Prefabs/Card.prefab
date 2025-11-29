@@ -157,10 +157,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c8bf9118b7274443b40578141ad3eb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _iconRenderer: {fileID: 3457192136566503218}
-  _backRenderer: {fileID: 6308890422035874687}
-  _cardFront: {fileID: 5556979452161473368}
-  _cardBack: {fileID: 1041340621999401342}
+  backRenderer: {fileID: 6308890422035874687}
+  cardFront: {fileID: 5556979452161473368}
+  cardBack: {fileID: 1041340621999401342}
+  labelText: {fileID: 5453017047911349769}
 --- !u!1 &3854717998430936688
 GameObject:
   m_ObjectHideFlags: 0
