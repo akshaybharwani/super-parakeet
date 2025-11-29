@@ -1,6 +1,7 @@
 using System;
 using CardMatch.Data;
 using UnityEngine;
+using DG.Tweening;
 
 namespace CardMatch.Core
 {
@@ -16,6 +17,11 @@ namespace CardMatch.Core
         [SerializeField] private GameObject cardFront;
         [SerializeField] private GameObject cardBack;
         [SerializeField] private TMPro.TextMeshPro labelText;
+        
+        [Header("Animation")]
+        [SerializeField] private float flipDuration = 0.3f;
+        [SerializeField] private Ease flipEase = Ease.InOutQuad;
+        private Sequence flipSequence;
 
         private CardData data;
         private CardState currentState = CardState.Hidden;
@@ -29,6 +35,8 @@ namespace CardMatch.Core
         public int GridY => gridY;
         public CardData Data => data;
         public TMPro.TextMeshPro LabelText => labelText;
+
+        private Color dimColor = new Color(0.0f, 0.0f, 0.0f, 0.3f);
 
         // Events
         public event Action<Card> OnCardClicked;
@@ -45,10 +53,10 @@ namespace CardMatch.Core
             // Set position
             transform.localPosition = localPosition;
 
-            // Set label text
+            // Set label text directly; fonts and fallbacks will provide glyphs
             if (labelText != null)
             {
-                labelText.text = labelSymbol;
+                labelText.text = labelSymbol ?? string.Empty;
             }
             else
             {
@@ -72,25 +80,29 @@ namespace CardMatch.Core
         /// </summary>
         private void UpdateVisuals()
         {
+            if (currentState == CardState.Locked)
+                return;
+
             bool isRevealed = currentState == CardState.Revealed || currentState == CardState.Matched;
-            
-            if (cardFront != null) 
+
+            if (cardFront != null)
                 cardFront.SetActive(isRevealed);
-            
-            if (cardBack != null) 
+
+            if (cardBack != null)
                 cardBack.SetActive(!isRevealed);
 
             // Dim matched cards
             if (currentState == CardState.Matched)
             {
-                Color dimColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+                // Dim matched cards (grey/transparent black)
                 if (labelText != null) 
-                    labelText.color = dimColor;
+                    labelText.color = new Color(0.0f, 0.0f, 0.0f, 0.3f);
             }
             else
             {
+                // Use black for simple symbols (Noto Sans glyphs)
                 if (labelText != null) 
-                    labelText.color = Color.white;
+                    labelText.color = Color.black;
             }
         }
 
@@ -112,8 +124,7 @@ namespace CardMatch.Core
         {
             if (currentState == CardState.Hidden)
             {
-                // TODO: Trigger flip animation (card back -> card front)
-                SetState(CardState.Revealed);
+                FlipTo(true, CardState.Revealed);
             }
         }
 
@@ -124,9 +135,31 @@ namespace CardMatch.Core
         {
             if (currentState == CardState.Revealed)
             {
-                // TODO: Trigger flip animation (card front -> card back)
-                SetState(CardState.Hidden);
+                FlipTo(false, CardState.Hidden);
             }
+        }
+
+        private void FlipTo(bool showFront, CardState targetState)
+        {
+            if (flipSequence != null && flipSequence.active)
+            {
+                flipSequence.Kill();
+            }
+
+            SetState(CardState.Locked);
+
+            flipSequence = DOTween.Sequence();
+            flipSequence.Append(transform.DOScaleX(0f, flipDuration * 0.5f).SetEase(flipEase));
+            flipSequence.AppendCallback(() =>
+            {
+                if (cardFront != null) cardFront.SetActive(showFront);
+                if (cardBack != null) cardBack.SetActive(!showFront);
+            });
+            flipSequence.Append(transform.DOScaleX(1f, flipDuration * 0.5f).SetEase(flipEase));
+            flipSequence.OnComplete(() =>
+            {
+                SetState(targetState);
+            });
         }
 
         /// <summary>
