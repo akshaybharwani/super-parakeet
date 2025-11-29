@@ -21,9 +21,15 @@ namespace CardMatch.Managers
 
         private List<Card> spawnedCards = new();
         private int rows;
-        private int columns;        /// <summary>
-                                    /// Generate a new game board
-                                    /// </summary>
+        private int columns;        
+        private readonly List<Card> selection = new();
+        private readonly Queue<Card> clickQueue = new();
+        [SerializeField] private float mismatchDelay = 0.6f;
+        private bool isProcessingSelection = false;
+        
+        /// <summary>
+        /// Generate a new game board
+        /// </summary>
         public void GenerateBoard(int rows, int columns)
         {
             ClearBoard();
@@ -142,7 +148,68 @@ namespace CardMatch.Managers
         private void OnCardClicked(Card card)
         {
             Debug.Log($"[BoardManager] Card clicked: ID={card.Id}, Position=({card.GridX},{card.GridY})");
-            // TODO: Add card to match queue. 
+            if (card.State != CardState.Hidden)
+                return;
+
+            if (selection.Count < 2)
+            {
+                card.Reveal();
+                selection.Add(card);
+                if (selection.Count == 2 && !isProcessingSelection)
+                {
+                    isProcessingSelection = true;
+                    StartCoroutine(ProcessSelection());
+                }
+            }
+            else
+            {
+                if (!clickQueue.Contains(card))
+                {
+                    clickQueue.Enqueue(card);
+                }
+            }
+        }
+
+        private System.Collections.IEnumerator ProcessSelection()
+        {
+            yield return new WaitUntil(() => selection.TrueForAll(c => c.State == CardState.Revealed));
+
+            var a = selection[0];
+            var b = selection[1];
+
+            if (a.Id == b.Id)
+            {
+                a.Match();
+                b.Match();
+            }
+            else
+            {
+                yield return new WaitForSeconds(mismatchDelay);
+                a.Hide();
+                b.Hide();
+                yield return new WaitUntil(() => a.State == CardState.Hidden && b.State == CardState.Hidden);
+            }
+
+            selection.Clear();
+
+            while (selection.Count < 2 && clickQueue.Count > 0)
+            {
+                var next = clickQueue.Dequeue();
+                if (next != null && next.State == CardState.Hidden)
+                {
+                    next.Reveal();
+                    selection.Add(next);
+                }
+            }
+
+            if (selection.Count == 2)
+            {
+                StartCoroutine(ProcessSelection());
+            }
+            else
+            {
+                isProcessingSelection = false;
+            }
         }
 
         /// <summary>

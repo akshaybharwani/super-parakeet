@@ -7,36 +7,36 @@ namespace CardMatch.Utils
     {
         private static readonly string[] symbols = new string[]
         {
-            "★",    // Star
-            "♠",    // Spade
-            "♥",    // Heart
-            "♦",    // Diamond
-            "♣",    // Club
-            "●",    // Circle
-            "■",    // Square
-            "▲",    // Triangle
-            "◆",    // Diamond2
-            "✦",    // Star2
-            "♪",    // Music note
-            "☀",    // Sun
-            "☁",    // Cloud
-            "☂",    // Umbrella
-            "✈",    // Plane
-            "⚡",    // Lightning
-            "❄",    // Snowflake
-            "☘",    // Clover
-            "⚽",    // Soccer ball
-            "♔",    // King
-            "♕",    // Queen
-            "♖",    // Rook
-            "♗",    // Bishop
-            "♘",    // Knight
-            "♙",    // Pawn
-            "✪",    // Star3
-            "◉",    // Circle2
-            "▣",    // Square2
-            "△",    // Triangle2
-            "◈"     // Diamond3
+            "★",
+            "♠",
+            "♥",
+            "♦",
+            "♣",
+            "●",
+            "■",
+            "▲",
+            "◆",
+            "✦",
+            "❒",
+            "☀",
+            "☁",
+            "☂",
+            "✈",
+            "⚡",
+            "❄",
+            "☘",
+            "♔",
+            "♕",
+            "♖",
+            "♗",
+            "♘",
+            "♙",
+            "✪",
+            "◉",
+            "▣",
+            "△",
+            "◈",
+            "✚"
         };
 
         /// <summary>
