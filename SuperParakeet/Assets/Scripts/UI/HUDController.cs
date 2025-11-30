@@ -14,6 +14,7 @@ namespace CardMatch.UI
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private TextMeshProUGUI matchText;
         [SerializeField] private TextMeshProUGUI scoreText;
+        [SerializeField] private TextMeshProUGUI currentGridSizeText;
         [SerializeField] private TextMeshProUGUI gameOverCurrentText;
         [SerializeField] private TextMeshProUGUI gameOverBestText;
         [SerializeField] private Image matchProgress;
@@ -42,6 +43,12 @@ namespace CardMatch.UI
 
         private CardMatcherSettings settings;
 
+        [Header("Match Value Display")]
+        [SerializeField]
+        private TextMeshProUGUI matchRewardText;
+        [SerializeField]
+        private TextMeshProUGUI mismatchPenaltyText;
+
         private int moves;
         private int calculatedMaxRows;
         private int calculatedMaxCols;
@@ -64,6 +71,9 @@ namespace CardMatch.UI
             timePressureThresholdSeconds = settings.timePressureThresholdSeconds;
             normalTimerColor = settings.normalTimerColor;
             pressureTimerColor = settings.pressureTimerColor;
+
+            // Update in-game display values
+            UpdateMatchValuesUI();
 
             InitializeDropdowns();
 
@@ -125,6 +135,9 @@ namespace CardMatch.UI
             UpdateTimerText();
             UpdateMatchText();
             UpdateScoreText();
+
+            // Ensure the display that shows reward/penalty is updated
+            UpdateMatchValuesUI();
 
             if (matchProgress != null)
             {
@@ -194,7 +207,7 @@ namespace CardMatch.UI
         {
             score = value < 0 ? 0 : value;
             UpdateScoreText();
-            if (scoreText != null)
+            if (scoreText != null && score > 0)
             {
                 scoreText.transform.DOKill();
                 scoreText.transform.localScale = Vector3.one;
@@ -217,6 +230,13 @@ namespace CardMatch.UI
             var m = Mathf.FloorToInt(elapsed / 60f);
             var s = Mathf.FloorToInt(elapsed % 60f);
             if (timerText != null) timerText.text = m.ToString("00") + ":" + s.ToString("00");
+        }
+
+        private void UpdateMatchValuesUI()
+        {
+            if (settings == null) settings = CardMatcherSettings.Get();
+            if (matchRewardText != null) matchRewardText.text = $"Reward: +{settings.matchReward}";
+            if (mismatchPenaltyText != null) mismatchPenaltyText.text = $"Penalty: -{settings.mismatchPenalty}";
         }
 
         private void UpdateTimerColor()

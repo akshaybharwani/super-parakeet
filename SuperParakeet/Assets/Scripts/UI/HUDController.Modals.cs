@@ -20,6 +20,7 @@ namespace CardMatch.UI
             var bestMoves = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.moves : moves;
             var bestTime = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.time : elapsed;
 
+            currentGridSizeText.text = $"Grid size: {rows} x {cols}";
             UpdateGameOverText(gameOverCurrentText, score, elapsed, moves);
             UpdateGameOverText(gameOverBestText, bestScore, bestTime, bestMoves);
 
@@ -99,7 +100,7 @@ namespace CardMatch.UI
         {
             if (textField != null)
             {
-                textField.text = $"{score} ({FormatTime(time)} / {moves}m)";
+                textField.text = $"{score} ({FormatTime(time)} / {moves} moves)";
             }
         }
 

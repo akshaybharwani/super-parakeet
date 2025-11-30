@@ -188,7 +188,7 @@ namespace CardMatch.Managers
         /// </summary>
         private void OnCardClicked(Card card)
         {
-            Debug.Log($"[BoardManager] Card clicked: ID={card.Id}, Position=({card.GridX},{card.GridY})");
+            // Debug.Log($"[BoardManager] Card clicked: ID={card.Id}, Position=({card.GridX},{card.GridY})");
 
             if (card.State != CardState.Hidden)
             {

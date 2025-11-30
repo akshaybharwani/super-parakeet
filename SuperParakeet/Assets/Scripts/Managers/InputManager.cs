@@ -64,7 +64,7 @@ namespace CardMatch.Managers
                 if (card != null)
                 {
                     card.OnClick();
-                    Debug.Log($"[InputManager] Card clicked via raycast: ID={card.Id}");
+                    // Debug.Log($"[InputManager] Card clicked via raycast: ID={card.Id}");
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace CardMatch.Managers
         public void SetInputEnabled(bool enabled)
         {
             inputEnabled = enabled;
-            Debug.Log($"[InputManager] Input {(enabled ? "enabled" : "disabled")}");
+            // Debug.Log($"[InputManager] Input {(enabled ? "enabled" : "disabled")}");
         }
     }
 }
