@@ -1,13 +1,15 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CardMatch.Core;
 using CardMatch.Data;
 using CardMatch.Utils;
+using CardMatch.UI;
 
 namespace CardMatch.Managers
 {
     /// <summary>
-    /// Manages the game board, card generation, and layout
+    /// Manages the game board, card generation, and layout.
     /// </summary>
     public class BoardManager : MonoBehaviour
     {
@@ -19,24 +21,34 @@ namespace CardMatch.Managers
         [SerializeField] private Vector2 cardSize = new(1f, 1.4f);
         [SerializeField] private float cardSpacing = 0.2f;
 
-        private List<Card> spawnedCards = new();
-        private int rows;
-        private int columns;        
+        [Header("Match Configuration")]
+        [SerializeField] private float mismatchDelay = 0.6f;
+        [SerializeField] private int matchReward = 100;
+        [SerializeField] private int mismatchPenalty = 5;
+
+        private readonly List<Card> spawnedCards = new();
         private readonly List<Card> selection = new();
         private readonly Queue<Card> clickQueue = new();
-        [SerializeField] private float mismatchDelay = 0.6f;
-        private bool isProcessingSelection = false;
-        
+
+        private int rows;
+        private int columns;
+        private bool isProcessingSelection;
+        private int matchedPairs;
+        private int totalPairs;
+        private int score;
+
         /// <summary>
-        /// Generate a new game board
+        /// Generate a new game board.
         /// </summary>
         public void GenerateBoard(int rows, int columns)
         {
+            ResetInteraction();
             ClearBoard();
 
             this.rows = rows;
             this.columns = columns;
-            int totalCards = this.rows * this.columns;
+
+            var totalCards = this.rows * this.columns;
 
             // Validate even number of cards
             if (totalCards % 2 != 0)
@@ -50,6 +62,17 @@ namespace CardMatch.Managers
             // Create card data pairs
             var cardDeck = CreateCardDeck(totalCards / 2);
 
+            totalPairs = totalCards / 2;
+            matchedPairs = 0;
+            score = 0;
+
+            var hud = GetHud();
+            if (hud != null)
+            {
+                hud.ResetHUD(totalPairs);
+                hud.SetScore(score);
+            }
+
             // Shuffle the deck
             ShuffleDeck(cardDeck);
 
@@ -58,16 +81,16 @@ namespace CardMatch.Managers
         }
 
         /// <summary>
-        /// Create a deck of card pairs
+        /// Create a deck of card pairs.
         /// </summary>
         private List<CardData> CreateCardDeck(int pairCount)
         {
-            List<CardData> deck = new List<CardData>();
+            var deck = new List<CardData>();
 
             // Create card data with IDs
-            for (int i = 0; i < pairCount; i++)
+            for (var i = 0; i < pairCount; i++)
             {
-                CardData data = CardData.Create(i);
+                var data = CardData.Create(i);
 
                 // Add pair
                 deck.Add(data);
@@ -76,14 +99,15 @@ namespace CardMatch.Managers
 
             return deck;
         }
+
         /// <summary>
-        /// Shuffle card deck using Fisher-Yates algorithm
+        /// Shuffle card deck using Fisher-Yates algorithm.
         /// </summary>
         private void ShuffleDeck(List<CardData> deck)
         {
-            for (int i = deck.Count - 1; i > 0; i--)
+            for (var i = deck.Count - 1; i > 0; i--)
             {
-                int randomIndex = Random.Range(0, i + 1);
+                var randomIndex = Random.Range(0, i + 1);
                 var temp = deck[i];
                 deck[i] = deck[randomIndex];
                 deck[randomIndex] = temp;
@@ -91,7 +115,7 @@ namespace CardMatch.Managers
         }
 
         /// <summary>
-        /// Spawn cards on the board with proper layout
+        /// Spawn cards on the board with proper layout.
         /// </summary>
         private void SpawnCards(List<CardData> cardDeck)
         {
@@ -102,33 +126,34 @@ namespace CardMatch.Managers
             }
 
             // Calculate grid center offset
-            float totalWidth = (columns * cardSize.x) + ((columns - 1) * cardSpacing);
-            float totalHeight = (rows * cardSize.y) + ((rows - 1) * cardSpacing);
-            Vector3 startPosition = new(-totalWidth / 2f, totalHeight / 2f, 0);
+            var totalWidth = (columns * cardSize.x) + ((columns - 1) * cardSpacing);
+            var totalHeight = (rows * cardSize.y) + ((rows - 1) * cardSpacing);
+            var startPosition = new Vector3(-totalWidth / 2f, totalHeight / 2f, 0f);
+
             SpawnCards(cardDeck, startPosition);
         }
 
         /// <summary>
-        /// Spawns cards on the board using calculated positions and initializes them with relevant data.
+        /// Spawn cards on the board using calculated positions and initialize them with relevant data.
         /// Manages event subscriptions for card interactions.
         /// </summary>
         private void SpawnCards(List<CardData> cardDeck, Vector3 startPosition)
         {
             var cardIndex = 0;
+
             for (var row = 0; row < rows; row++)
             {
                 for (var col = 0; col < columns; col++)
                 {
-                    Vector3 position = startPosition + new Vector3(
+                    var position = startPosition + new Vector3(
                         col * (cardSize.x + cardSpacing),
                         -row * (cardSize.y + cardSpacing),
-                        0
-                    );
+                        0f);
 
                     var card = Instantiate(cardPrefab, boardContainer);
 
                     // Get symbol for this card
-                    string symbol = CardSymbolProvider.GetSymbol(cardDeck[cardIndex].Id);
+                    var symbol = CardSymbolProvider.GetSymbol(cardDeck[cardIndex].Id);
 
                     // Initialize card with all data
                     card.Initialize(cardDeck[cardIndex], col, row, position, symbol);
@@ -140,54 +165,102 @@ namespace CardMatch.Managers
                     cardIndex++;
                 }
             }
-        }        
-        
+        }
+
         /// <summary>
-        /// Handle card click event
+        /// Handle card click event.
         /// </summary>
         private void OnCardClicked(Card card)
         {
             Debug.Log($"[BoardManager] Card clicked: ID={card.Id}, Position=({card.GridX},{card.GridY})");
+
             if (card.State != CardState.Hidden)
+            {
                 return;
+            }
 
             if (selection.Count < 2)
             {
                 card.Reveal();
                 selection.Add(card);
+
                 if (selection.Count == 2 && !isProcessingSelection)
                 {
                     isProcessingSelection = true;
                     StartCoroutine(ProcessSelection());
                 }
             }
-            else
+            else if (!clickQueue.Contains(card))
             {
-                if (!clickQueue.Contains(card))
-                {
-                    clickQueue.Enqueue(card);
-                }
+                clickQueue.Enqueue(card);
             }
         }
 
-        private System.Collections.IEnumerator ProcessSelection()
+        /// <summary>
+        /// Process the current card selection for a potential match.
+        /// </summary>
+        private IEnumerator ProcessSelection()
         {
             yield return new WaitUntil(() => selection.TrueForAll(c => c.State == CardState.Revealed));
 
+            var hud = GetHud();
+            if (hud != null)
+            {
+                hud.IncrementMoves();
+            }
+
             var a = selection[0];
             var b = selection[1];
+
+            if (a == null || b == null)
+            {
+                selection.Clear();
+                isProcessingSelection = false;
+                yield break;
+            }
 
             if (a.Id == b.Id)
             {
                 a.Match();
                 b.Match();
+
+                matchedPairs++;
+                score += matchReward;
+
+                if (hud != null)
+                {
+                    hud.SetMatchProgress(matchedPairs, totalPairs);
+                    hud.PlayMilestone();
+                    hud.SetScore(score);
+                }
+
+                if (matchedPairs >= totalPairs && GameManager.Instance != null)
+                {
+                    GameManager.Instance.ChangeState(GameState.GameOver);
+                }
             }
             else
             {
                 yield return new WaitForSeconds(mismatchDelay);
-                a.Hide();
-                b.Hide();
+
+                if (a != null)
+                {
+                    a.Hide();
+                }
+
+                if (b != null)
+                {
+                    b.Hide();
+                }
+
                 yield return new WaitUntil(() => a.State == CardState.Hidden && b.State == CardState.Hidden);
+
+                score = Mathf.Max(0, score - mismatchPenalty);
+
+                if (hud != null)
+                {
+                    hud.SetScore(score);
+                }
             }
 
             selection.Clear();
@@ -213,27 +286,32 @@ namespace CardMatch.Managers
         }
 
         /// <summary>
-        /// Clear all cards from the board
+        /// Clear all cards from the board.
         /// </summary>
         private void ClearBoard()
         {
+            ResetInteraction();
+
             foreach (var card in spawnedCards)
             {
-                if (card != null)
+                if (card == null)
                 {
-                    card.OnCardClicked -= OnCardClicked;
-                    Destroy(card.gameObject);
+                    continue;
                 }
+
+                card.OnCardClicked -= OnCardClicked;
+                Destroy(card.gameObject);
             }
+
             spawnedCards.Clear();
         }
 
         /// <summary>
-        /// Get all cards on the board
+        /// Get all cards on the board.
         /// </summary>
         public List<Card> GetAllCards()
         {
-            return new List<Card>(spawnedCards);
+            return new(spawnedCards);
         }
 
         private void OnDestroy()
@@ -245,8 +323,25 @@ namespace CardMatch.Managers
                 {
                     continue;
                 }
+
                 card.OnCardClicked -= OnCardClicked;
             }
+        }
+
+        /// <summary>
+        /// Reset interaction state and clear current selections/queue.
+        /// </summary>
+        private void ResetInteraction()
+        {
+            StopAllCoroutines();
+            isProcessingSelection = false;
+            selection.Clear();
+            clickQueue.Clear();
+        }
+
+        private HUDController GetHud()
+        {
+            return GameManager.Instance != null ? GameManager.Instance.HUDCanvas : null;
         }
     }
 }

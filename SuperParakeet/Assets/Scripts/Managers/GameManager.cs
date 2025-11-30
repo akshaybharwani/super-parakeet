@@ -1,5 +1,7 @@
 using UnityEngine;
 using CardMatch.Core;
+using CardMatch.UI;
+using CardMatch.Utils;
 
 namespace CardMatch.Managers
 {
@@ -14,6 +16,7 @@ namespace CardMatch.Managers
         [Header("Manager References")]
         [SerializeField] private BoardManager boardManager;
         [SerializeField] private InputManager inputManager;
+        [SerializeField] private HUDController hud;
 
         [Header("Game Configuration")]
         [SerializeField] private int rows = 4;
@@ -21,6 +24,7 @@ namespace CardMatch.Managers
 
         private GameState currentState;
         public GameState CurrentState => currentState;
+        public HUDController HUDCanvas => hud;
 
         private void Awake()
         {
@@ -42,13 +46,29 @@ namespace CardMatch.Managers
             
             if (inputManager == null)
                 inputManager = GetComponentInChildren<InputManager>();
+            if (hud == null)
+            {
+                hud = GetComponentInChildren<HUDController>();
+                if (hud == null)
+                {
+                    var prefab = Resources.Load<GameObject>("UI/HUDCanvas");
+                    if (prefab != null)
+                    {
+                        var instance = Instantiate(prefab);
+                        hud = instance.GetComponent<HUDController>();
+                    }
+                }
+            }
         }
 
         private void Start()
         {
-            InitializeGame();
+            // Load saved grid configuration or use defaults
+            var savedRows = PlayerPrefsManager.GetRows(rows);
+            var savedCols = PlayerPrefsManager.GetColumns(columns);
+            
+            StartNewGame(savedRows, savedCols);
         }
-
         /// <summary>
         /// Initialize the game
         /// </summary>
@@ -64,6 +84,10 @@ namespace CardMatch.Managers
             
             // Start playing
             ChangeState(GameState.Playing);
+            if (hud != null)
+            {
+                hud.StartTimer();
+            }
         }
 
         /// <summary>
@@ -85,19 +109,22 @@ namespace CardMatch.Managers
             switch (state)
             {
                 case GameState.Initializing:
-                    // TODO: Generate board, Disable input during initialization
+                    if (inputManager != null) inputManager.SetInputEnabled(false);
                     break;
                     
                 case GameState.Playing:
-                    // TODO: Start gameplay, Enable input
+                    if (inputManager != null) inputManager.SetInputEnabled(true);
+                    if (hud != null) hud.ResumeTimer();
                     break;
                     
                 case GameState.Paused:
-                    // TODO: Pause gameplay, Disable input
+                    if (inputManager != null) inputManager.SetInputEnabled(false);
+                    if (hud != null) hud.PauseTimer();
                     break;
                     
                 case GameState.GameOver:
-                    // TODO: Show results, disable input
+                    if (inputManager != null) inputManager.SetInputEnabled(false);
+                    if (hud != null) hud.PauseTimer();
                     OnGameOver();
                     break;
             }
@@ -109,7 +136,7 @@ namespace CardMatch.Managers
         private void OnGameOver()
         {
             Debug.Log("[GameManager] Game Over!");
-            // TODO: Show game over screen and score display etc
+            if (hud != null) hud.ShowGameOver(rows, columns);
         }
 
         /// <summary>
