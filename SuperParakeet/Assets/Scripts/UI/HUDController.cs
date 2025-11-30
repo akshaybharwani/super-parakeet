@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using DG.Tweening;
 using CardMatch.Utils;
+using CardMatch;
 
 namespace CardMatch.UI
 {
@@ -13,6 +14,7 @@ namespace CardMatch.UI
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private TextMeshProUGUI matchText;
         [SerializeField] private TextMeshProUGUI scoreText;
+        [SerializeField] private TextMeshProUGUI currentGridSizeText;
         [SerializeField] private TextMeshProUGUI gameOverCurrentText;
         [SerializeField] private TextMeshProUGUI gameOverBestText;
         [SerializeField] private Image matchProgress;
@@ -23,6 +25,7 @@ namespace CardMatch.UI
 
         [Header("Panels")]
         [SerializeField] private GameObject confirmRestartPanel;
+        [SerializeField] private GameObject confirmQuitPanel;
         [SerializeField] private GameObject setupPanel;
         [SerializeField] private GameObject modalBlocker;
         [SerializeField] private GameObject gameOverPanel;
@@ -31,15 +34,21 @@ namespace CardMatch.UI
         [SerializeField] private TMP_Dropdown rowsDropdown;
         [SerializeField] private TMP_Dropdown columnsDropdown;
         
-        [Header("Timer Settings")]
-        [SerializeField] private int timePressureThresholdSeconds = 60;
-        [SerializeField] private Color normalTimerColor = Color.white;
-        [SerializeField] private Color pressureTimerColor = Color.red;
+        // These are now provided by CardMatcherSettings
+        private int minGridSize;
+        private int maxGridSize;
+        private float screenMargin;
+        private int timePressureThresholdSeconds;
+        private Color normalTimerColor;
+        private Color pressureTimerColor;
 
-        [Header("Grid Constraints")]
-        [SerializeField] private int minGridSize = 2;
-        [SerializeField] private int maxGridSize = 8;
-        [SerializeField] private float screenMargin = 0.1f;
+        private CardMatcherSettings settings;
+
+        [Header("Match Value Display")]
+        [SerializeField]
+        private TextMeshProUGUI matchRewardText;
+        [SerializeField]
+        private TextMeshProUGUI mismatchPenaltyText;
 
         private int moves;
         private int calculatedMaxRows;
@@ -55,10 +64,24 @@ namespace CardMatch.UI
             if (restartButton != null) restartButton.onClick.AddListener(OnRestartClicked);
             if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGameClicked);
 
+            // Load settings before initializing dropdown values and runtime UI
+            settings = CardMatcherSettings.Get();
+            minGridSize = settings.minGridSize;
+            maxGridSize = settings.maxGridSize;
+            screenMargin = settings.screenMargin;
+            timePressureThresholdSeconds = settings.timePressureThresholdSeconds;
+            normalTimerColor = settings.normalTimerColor;
+            pressureTimerColor = settings.pressureTimerColor;
+
+            // Update in-game display values
+            UpdateMatchValuesUI();
+
             InitializeDropdowns();
 
-            var r = PlayerPrefsManager.GetRows(4);
-            var c = PlayerPrefsManager.GetColumns(4);
+            // settings already loaded and applied above
+
+            var r = PlayerPrefsManager.GetRows(settings.defaultRows);
+            var c = PlayerPrefsManager.GetColumns(settings.defaultColumns);
             SetDropdownValue(rowsDropdown, r);
             SetDropdownValue(columnsDropdown, c);
 
@@ -77,18 +100,18 @@ namespace CardMatch.UI
             UpdateMatchText();
             UpdateScoreText();
 
-            if (matchProgress != null)
+            /* if (matchProgress != null)
             {
                 matchProgress.type = Image.Type.Filled;
                 matchProgress.fillMethod = Image.FillMethod.Horizontal;
                 matchProgress.fillOrigin = (int)Image.OriginHorizontal.Left;
                 matchProgress.fillAmount = 0f;
-            }
+            } */
 
             if (confirmRestartPanel != null) confirmRestartPanel.SetActive(false);
-            if (setupPanel != null) setupPanel.SetActive(false);
+            //if (setupPanel != null) setupPanel.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
-            if (modalBlocker != null) modalBlocker.SetActive(false);
+            //if (modalBlocker != null) modalBlocker.SetActive(false);
         }
 
         private void Update()
@@ -113,6 +136,9 @@ namespace CardMatch.UI
             UpdateTimerText();
             UpdateMatchText();
             UpdateScoreText();
+
+            // Ensure the display that shows reward/penalty is updated
+            UpdateMatchValuesUI();
 
             if (matchProgress != null)
             {
@@ -182,7 +208,7 @@ namespace CardMatch.UI
         {
             score = value < 0 ? 0 : value;
             UpdateScoreText();
-            if (scoreText != null)
+            if (scoreText != null && score > 0)
             {
                 scoreText.transform.DOKill();
                 scoreText.transform.localScale = Vector3.one;
@@ -205,6 +231,13 @@ namespace CardMatch.UI
             var m = Mathf.FloorToInt(elapsed / 60f);
             var s = Mathf.FloorToInt(elapsed % 60f);
             if (timerText != null) timerText.text = m.ToString("00") + ":" + s.ToString("00");
+        }
+
+        private void UpdateMatchValuesUI()
+        {
+            if (settings == null) settings = CardMatcherSettings.Get();
+            if (matchRewardText != null) matchRewardText.text = $"Reward: +{settings.matchReward}";
+            if (mismatchPenaltyText != null) mismatchPenaltyText.text = $"Penalty: -{settings.mismatchPenalty}";
         }
 
         private void UpdateTimerColor()

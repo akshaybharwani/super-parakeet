@@ -26,6 +26,12 @@ namespace CardMatch.Managers
         {
             if (!inputEnabled) return;
             
+            if (Input.GetKeyDown(KeyCode.Escape) && GameManager.Instance?.CurrentState != GameState.Paused)
+            {
+                // Handle back button on mobile or Escape key on desktop
+                GameManager.Instance.HUDCanvas.OnQuitClicked();
+            }
+
             // Check game state
             if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing)
             {
@@ -64,7 +70,7 @@ namespace CardMatch.Managers
                 if (card != null)
                 {
                     card.OnClick();
-                    Debug.Log($"[InputManager] Card clicked via raycast: ID={card.Id}");
+                    // Debug.Log($"[InputManager] Card clicked via raycast: ID={card.Id}");
                 }
             }
         }
@@ -75,7 +81,7 @@ namespace CardMatch.Managers
         public void SetInputEnabled(bool enabled)
         {
             inputEnabled = enabled;
-            Debug.Log($"[InputManager] Input {(enabled ? "enabled" : "disabled")}");
+            // Debug.Log($"[InputManager] Input {(enabled ? "enabled" : "disabled")}");
         }
     }
 }

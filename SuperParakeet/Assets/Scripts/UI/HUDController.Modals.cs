@@ -20,6 +20,7 @@ namespace CardMatch.UI
             var bestMoves = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.moves : moves;
             var bestTime = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.time : elapsed;
 
+            currentGridSizeText.text = $"Grid size: {rows} x {cols}";
             UpdateGameOverText(gameOverCurrentText, score, elapsed, moves);
             UpdateGameOverText(gameOverBestText, bestScore, bestTime, bestMoves);
 
@@ -52,6 +53,25 @@ namespace CardMatch.UI
             GetGameManager()?.ChangeState(GameState.Paused);
         }
 
+        public void OnQuitClicked()
+        {
+            ShowModalBlocker();
+            ShowPanel(confirmQuitPanel);
+            GetGameManager()?.ChangeState(GameState.Paused);
+        }
+
+        public void ConfirmQuit()
+        {
+            GetGameManager()?.QuitGame();
+        }
+
+        public void CancelQuit()
+        {
+            HidePanel(confirmQuitPanel);
+            HideModalBlocker();
+            GetGameManager()?.ChangeState(GameState.Playing);
+        }
+
         public void ConfirmRestart()
         {
             HidePanel(confirmRestartPanel);
@@ -75,8 +95,9 @@ namespace CardMatch.UI
 
         public void ApplyNewGame()
         {
-            var rows = GetDropdownValue(rowsDropdown, 4);
-            var cols = GetDropdownValue(columnsDropdown, 4);
+            var settings = CardMatcherSettings.Get();
+            var rows = GetDropdownValue(rowsDropdown, settings.defaultRows);
+            var cols = GetDropdownValue(columnsDropdown, settings.defaultColumns);
 
             // Ensure even number of cards (should already be valid from dropdown options)
             var totalCards = rows * cols;
@@ -98,7 +119,7 @@ namespace CardMatch.UI
         {
             if (textField != null)
             {
-                textField.text = $"{score} ({FormatTime(time)} / {moves}m)";
+                textField.text = $"{score} ({FormatTime(time)} / {moves} moves)";
             }
         }
 
