@@ -162,7 +162,7 @@ MonoBehaviour:
   cardBack: {fileID: 1041340621999401342}
   labelText: {fileID: 5453017047911349769}
   flipDuration: 0.3
-  flipEase: 7
+  flipEase: 4
 --- !u!1 &3854717998430936688
 GameObject:
   m_ObjectHideFlags: 0

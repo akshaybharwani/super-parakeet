@@ -21,8 +21,10 @@ namespace CardMatch.Managers
         [SerializeField] private Vector2 cardSize = new(1f, 1.4f);
         [SerializeField] private float cardSpacing = 0.2f;
 
-        [Header("Match Configuration")]
-        [SerializeField] private float mismatchDelay = 0.6f;
+        public Vector2 CardSize => cardSize;
+        public float CardSpacing => cardSpacing;
+
+        [Header("Match Configuration")]        [SerializeField] private float mismatchDelay = 0.6f;
         [SerializeField] private int matchReward = 100;
         [SerializeField] private int mismatchPenalty = 5;
 
@@ -105,6 +107,9 @@ namespace CardMatch.Managers
         /// </summary>
         private void ShuffleDeck(List<CardData> deck)
         {
+            // Ensure random seed is fresh
+            Random.InitState((int)System.DateTime.Now.Ticks);
+
             for (var i = deck.Count - 1; i > 0; i--)
             {
                 var randomIndex = Random.Range(0, i + 1);
@@ -112,6 +117,9 @@ namespace CardMatch.Managers
                 deck[i] = deck[randomIndex];
                 deck[randomIndex] = temp;
             }
+
+            // Debug: Log first few IDs to verify shuffle
+            Debug.Log($"[BoardManager] Shuffled deck preview: {string.Join(", ", deck.GetRange(0, Mathf.Min(8, deck.Count)).ConvertAll(c => c.Id))}");
         }
 
         /// <summary>
@@ -227,6 +235,12 @@ namespace CardMatch.Managers
                 matchedPairs++;
                 score += matchReward;
 
+                // Play match sound
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayMatch();
+                }
+
                 if (hud != null)
                 {
                     hud.SetMatchProgress(matchedPairs, totalPairs);
@@ -241,6 +255,12 @@ namespace CardMatch.Managers
             }
             else
             {
+                // Play mismatch sound
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayMismatch();
+                }
+
                 yield return new WaitForSeconds(mismatchDelay);
 
                 if (a != null)

@@ -1,7 +1,6 @@
 using UnityEngine;
 using CardMatch.Core;
 using CardMatch.UI;
-using CardMatch.Utils;
 
 namespace CardMatch.Managers
 {
@@ -25,6 +24,7 @@ namespace CardMatch.Managers
         private GameState currentState;
         public GameState CurrentState => currentState;
         public HUDController HUDCanvas => hud;
+        public BoardManager BoardManager => boardManager;
 
         private void Awake()
         {
@@ -63,11 +63,11 @@ namespace CardMatch.Managers
 
         private void Start()
         {
-            // Load saved grid configuration or use defaults
-            var savedRows = PlayerPrefsManager.GetRows(rows);
-            var savedCols = PlayerPrefsManager.GetColumns(columns);
-            
-            StartNewGame(savedRows, savedCols);
+            // Always show setup panel on launch
+            if (hud != null)
+            {
+                hud.OnNewGameClicked();
+            }
         }
         /// <summary>
         /// Initialize the game
@@ -136,9 +136,15 @@ namespace CardMatch.Managers
         private void OnGameOver()
         {
             Debug.Log("[GameManager] Game Over!");
+            
+            // Play game over sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayGameOver();
+            }
+            
             if (hud != null) hud.ShowGameOver(rows, columns);
         }
-
         /// <summary>
         /// Restart the game
         /// </summary>

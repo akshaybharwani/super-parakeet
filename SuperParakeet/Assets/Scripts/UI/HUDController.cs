@@ -27,34 +27,43 @@ namespace CardMatch.UI
         [SerializeField] private GameObject modalBlocker;
         [SerializeField] private GameObject gameOverPanel;
 
-        [Header("InputFields")]
-        [SerializeField] private TMP_InputField rowsInput;
-        [SerializeField] private TMP_InputField columnsInput;
+        [Header("Grid Size Dropdowns")]
+        [SerializeField] private TMP_Dropdown rowsDropdown;
+        [SerializeField] private TMP_Dropdown columnsDropdown;
         
         [Header("Timer Settings")]
         [SerializeField] private int timePressureThresholdSeconds = 60;
         [SerializeField] private Color normalTimerColor = Color.white;
         [SerializeField] private Color pressureTimerColor = Color.red;
 
+        [Header("Grid Constraints")]
+        [SerializeField] private int minGridSize = 2;
+        [SerializeField] private int maxGridSize = 8;
+        [SerializeField] private float screenMargin = 0.1f;
+
         private int moves;
+        private int calculatedMaxRows;
+        private int calculatedMaxCols;
         private float elapsed;
         private bool timerRunning;
         private int matched;
         private int total;
         private int score;
 
-        private void Awake()
+        private void Start()
         {
             if (restartButton != null) restartButton.onClick.AddListener(OnRestartClicked);
             if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGameClicked);
 
-            if (rowsInput != null) rowsInput.onEndEdit.AddListener(OnRowsEdited);
-            if (columnsInput != null) columnsInput.onEndEdit.AddListener(OnColumnsEdited);
+            InitializeDropdowns();
 
             var r = PlayerPrefsManager.GetRows(4);
             var c = PlayerPrefsManager.GetColumns(4);
-            if (rowsInput != null) rowsInput.text = r.ToString();
-            if (columnsInput != null) columnsInput.text = c.ToString();
+            SetDropdownValue(rowsDropdown, r);
+            SetDropdownValue(columnsDropdown, c);
+
+            if (rowsDropdown != null) rowsDropdown.onValueChanged.AddListener(OnRowsChanged);
+            if (columnsDropdown != null) columnsDropdown.onValueChanged.AddListener(OnColumnsChanged);
 
             moves = 0;
             elapsed = 0f;
@@ -222,6 +231,138 @@ namespace CardMatch.UI
             var m = Mathf.FloorToInt(t / 60f);
             var s = Mathf.FloorToInt(t % 60f);
             return m.ToString("00") + ":" + s.ToString("00");
+        }
+
+        private void InitializeDropdowns()
+        {
+            CalculateMaxGridSize();
+
+            var rowOptions = new System.Collections.Generic.List<string>();
+            for (int i = minGridSize; i <= calculatedMaxRows; i++)
+            {
+                rowOptions.Add(i.ToString());
+            }
+
+            var colOptions = new System.Collections.Generic.List<string>();
+            for (int i = minGridSize; i <= calculatedMaxCols; i++)
+            {
+                colOptions.Add(i.ToString());
+            }
+
+            if (rowsDropdown != null)
+            {
+                rowsDropdown.ClearOptions();
+                rowsDropdown.AddOptions(rowOptions);
+            }
+
+            if (columnsDropdown != null)
+            {
+                columnsDropdown.ClearOptions();
+                columnsDropdown.AddOptions(colOptions);
+            }
+
+            Debug.Log($"[HUD] Screen-based grid limits: {calculatedMaxRows}x{calculatedMaxCols}");
+        }
+
+        private void CalculateMaxGridSize()
+        {
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                calculatedMaxRows = maxGridSize;
+                calculatedMaxCols = maxGridSize;
+                Debug.LogWarning("[HUD] Camera.main not found, using default max grid size");
+                return;
+            }
+
+            var boardManager = GetGameManager()?.BoardManager;
+            if (boardManager == null)
+            {
+                calculatedMaxRows = maxGridSize;
+                calculatedMaxCols = maxGridSize;
+                Debug.LogWarning("[HUD] BoardManager not found, using default max grid size");
+                return;
+            }
+
+            // Get actual card size and spacing from BoardManager
+            float cardWidth = boardManager.CardSize.x;
+            float cardHeight = boardManager.CardSize.y;
+            float spacing = boardManager.CardSpacing;
+
+            // Get visible screen space in world units
+            float screenHeight = cam.orthographicSize * 2f;
+            float screenWidth = screenHeight * cam.aspect;
+
+            // Reserve space for HUD (top and bottom margins)
+            float hudReservedHeight = screenHeight * 0.25f;
+            float usableHeight = screenHeight - hudReservedHeight;
+            float usableWidth = screenWidth * (1f - screenMargin * 2f);
+
+            // Calculate max rows and columns that fit
+            calculatedMaxRows = Mathf.FloorToInt((usableHeight + spacing) / (cardHeight + spacing));
+            calculatedMaxCols = Mathf.FloorToInt((usableWidth + spacing) / (cardWidth + spacing));
+
+            // Clamp to reasonable limits
+            calculatedMaxRows = Mathf.Clamp(calculatedMaxRows, minGridSize, maxGridSize);
+            calculatedMaxCols = Mathf.Clamp(calculatedMaxCols, minGridSize, maxGridSize);
+
+            // Ensure even total for pairs
+            int maxTotal = calculatedMaxRows * calculatedMaxCols;
+            if (maxTotal % 2 != 0)
+            {
+                if (calculatedMaxCols > minGridSize)
+                    calculatedMaxCols--;
+                else if (calculatedMaxRows > minGridSize)
+                    calculatedMaxRows--;
+            }
+
+            Debug.Log($"[HUD] Screen: {screenWidth:F1}x{screenHeight:F1}, Usable: {usableWidth:F1}x{usableHeight:F1}, CardSize: {cardWidth}x{cardHeight}, Max grid: {calculatedMaxRows}x{calculatedMaxCols}");
+        }
+
+        private void SetDropdownValue(TMP_Dropdown dropdown, int value)
+        {
+            if (dropdown == null) return;
+
+            int index = value - minGridSize;
+            if (index >= 0 && index < dropdown.options.Count)
+            {
+                dropdown.value = index;
+            }
+        }
+
+        private int GetDropdownValue(TMP_Dropdown dropdown, int fallback)
+        {
+            if (dropdown == null) return fallback;
+            
+            // Get the actual text value from dropdown
+            if (dropdown.value >= 0 && dropdown.value < dropdown.options.Count)
+            {
+                if (int.TryParse(dropdown.options[dropdown.value].text, out int value))
+                {
+                    return value;
+                }
+            }
+            
+            return fallback;
+        }
+
+        private void OnRowsChanged(int index)
+        {
+            var value = GetDropdownValue(rowsDropdown, 4);
+            PlayerPrefsManager.SetRows(value);
+            PlayerPrefsManager.Save();
+        }
+
+        private void OnColumnsChanged(int index)
+        {
+            var value = GetDropdownValue(columnsDropdown, 4);
+            PlayerPrefsManager.SetColumns(value);
+            PlayerPrefsManager.Save();
+        }
+        
+        private Managers.GameManager GetGameManager()
+        {
+            return Managers.GameManager.Instance;
         }
     }
 }

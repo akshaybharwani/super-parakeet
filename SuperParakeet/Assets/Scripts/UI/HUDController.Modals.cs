@@ -1,7 +1,7 @@
-using UnityEngine;
 using TMPro;
 using CardMatch.Core;
 using CardMatch.Utils;
+using UnityEngine;
 
 namespace CardMatch.UI
 {
@@ -9,61 +9,34 @@ namespace CardMatch.UI
     {
         public void ShowGameOver(int rows, int cols)
         {
-            if (confirmRestartPanel != null) confirmRestartPanel.SetActive(false);
-            if (setupPanel != null) setupPanel.SetActive(false);
-            if (restartButton != null) restartButton.interactable = false;
-            if (newGameButton != null) newGameButton.interactable = false;
-            if (modalBlocker != null)
-            {
-                modalBlocker.SetActive(true);
-                modalBlocker.transform.SetAsLastSibling();
-            }
+            HideAllModals();
+            DisableGameButtons();
+            ShowModalBlocker();
 
-            // Get current best scores
-            var bestMoves = PlayerPrefsManager.GetBestMoves(rows, cols, moves);
-            var bestTime = PlayerPrefsManager.GetBestTime(rows, cols, elapsed);
+            PlayerPrefsManager.TryUpdateBestScore(rows, cols, score, moves, elapsed);
 
-            // Update if current is better
-            if (!PlayerPrefsManager.HasBestMoves(rows, cols) || moves < bestMoves)
-            {
-                bestMoves = moves;
-                PlayerPrefsManager.SetBestMoves(rows, cols, bestMoves);
-            }
+            var bestData = PlayerPrefsManager.GetBestScoreData(rows, cols);
+            var bestScore = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.score : score;
+            var bestMoves = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.moves : moves;
+            var bestTime = PlayerPrefsManager.HasBestScore(rows, cols) ? bestData.time : elapsed;
 
-            if (!PlayerPrefsManager.HasBestTime(rows, cols) || elapsed < bestTime)
-            {
-                bestTime = elapsed;
-                PlayerPrefsManager.SetBestTime(rows, cols, bestTime);
-            }
+            UpdateGameOverText(gameOverCurrentText, score, elapsed, moves);
+            UpdateGameOverText(gameOverBestText, bestScore, bestTime, bestMoves);
 
-            PlayerPrefsManager.Save();
-            if (gameOverCurrentText != null)
-            {
-                gameOverCurrentText.text = FormatTime(elapsed) + " / " + moves.ToString();
-            }
-            if (gameOverBestText != null)
-            {
-                gameOverBestText.text = FormatTime(bestTime) + " / " + bestMoves.ToString();
-            }
-            if (gameOverPanel != null)
-            {
-                gameOverPanel.SetActive(true);
-                gameOverPanel.transform.SetAsLastSibling();
-            }
+            ShowPanel(gameOverPanel);
         }
 
         public void HideGameOver()
         {
-            if (gameOverPanel != null) gameOverPanel.SetActive(false);
-            if (restartButton != null) restartButton.interactable = true;
-            if (newGameButton != null) newGameButton.interactable = true;
-            if (modalBlocker != null) modalBlocker.SetActive(false);
+            HidePanel(gameOverPanel);
+            EnableGameButtons();
+            HideModalBlocker();
         }
 
         public void PlayAgain()
         {
             HideGameOver();
-            Managers.GameManager.Instance.RestartGame();
+            GetGameManager()?.RestartGame();
         }
 
         public void OpenNewGameFromGameOver()
@@ -74,78 +47,99 @@ namespace CardMatch.UI
 
         public void OnRestartClicked()
         {
-            if (modalBlocker != null)
-            {
-                modalBlocker.SetActive(true);
-                modalBlocker.transform.SetAsLastSibling();
-            }
-            if (confirmRestartPanel != null)
-            {
-                confirmRestartPanel.SetActive(true);
-                confirmRestartPanel.transform.SetAsLastSibling();
-            }
-            Managers.GameManager.Instance.ChangeState(GameState.Paused);
+            ShowModalBlocker();
+            ShowPanel(confirmRestartPanel);
+            GetGameManager()?.ChangeState(GameState.Paused);
         }
 
         public void ConfirmRestart()
         {
-            if (confirmRestartPanel != null) confirmRestartPanel.SetActive(false);
-            if (modalBlocker != null) modalBlocker.SetActive(false);
-            Managers.GameManager.Instance.RestartGame();
+            HidePanel(confirmRestartPanel);
+            HideModalBlocker();
+            GetGameManager()?.RestartGame();
         }
 
         public void CancelRestart()
         {
-            if (confirmRestartPanel != null) confirmRestartPanel.SetActive(false);
-            if (modalBlocker != null) modalBlocker.SetActive(false);
-            Managers.GameManager.Instance.ChangeState(GameState.Playing);
+            HidePanel(confirmRestartPanel);
+            HideModalBlocker();
+            GetGameManager()?.ChangeState(GameState.Playing);
         }
 
         public void OnNewGameClicked()
         {
-            if (modalBlocker != null)
-            {
-                modalBlocker.SetActive(true);
-                modalBlocker.transform.SetAsLastSibling();
-            }
-            if (setupPanel != null)
-            {
-                setupPanel.SetActive(true);
-                setupPanel.transform.SetAsLastSibling();
-            }
-            Managers.GameManager.Instance.ChangeState(GameState.Paused);
+            ShowModalBlocker();
+            ShowPanel(setupPanel);
+            GetGameManager()?.ChangeState(GameState.Paused);
         }
 
         public void ApplyNewGame()
         {
-            var rows = ParseInput(rowsInput, 4);
-            var cols = ParseInput(columnsInput, 4);
+            var rows = GetDropdownValue(rowsDropdown, 4);
+            var cols = GetDropdownValue(columnsDropdown, 4);
+
+            // Ensure even number of cards (should already be valid from dropdown options)
+            var totalCards = rows * cols;
+            if (totalCards % 2 != 0)
+            {
+                Debug.LogWarning($"[HUD] Grid {rows}x{cols} has odd total. Adjusting columns.");
+                cols = cols > minGridSize ? cols - 1 : cols + 1;
+                SetDropdownValue(columnsDropdown, cols);
+            }
+
             PlayerPrefsManager.SetGridSize(rows, cols);
-            if (setupPanel != null) setupPanel.SetActive(false);
-            if (modalBlocker != null) modalBlocker.SetActive(false);
-            Managers.GameManager.Instance.StartNewGame(rows, cols);
+            
+            HidePanel(setupPanel);
+            HideModalBlocker();
+            
+            GetGameManager()?.StartNewGame(rows, cols);
+        }
+        private void UpdateGameOverText(TextMeshProUGUI textField, int score, float time, int moves)        
+        {
+            if (textField != null)
+            {
+                textField.text = $"{score} ({FormatTime(time)} / {moves}m)";
+            }
         }
 
-        private void OnRowsEdited(string text)
+        private void ShowPanel(GameObject panel)
         {
-            var v = ParseInput(rowsInput, 4);
-            PlayerPrefsManager.SetRows(v);
-            PlayerPrefsManager.Save();
+            if (panel == null) return;
+            panel.SetActive(true);
+            panel.transform.SetAsLastSibling();
         }
 
-        private void OnColumnsEdited(string text)
+        private void HidePanel(GameObject panel)
         {
-            var v = ParseInput(columnsInput, 4);
-            PlayerPrefsManager.SetColumns(v);
-            PlayerPrefsManager.Save();
+            if (panel != null) panel.SetActive(false);
         }
 
-        private int ParseInput(TMP_InputField field, int fallback)
+        private void ShowModalBlocker()
         {
-            if (field == null) return fallback;
-            int parsed;
-            if (int.TryParse(field.text, out parsed)) return parsed;
-            return fallback;
+            ShowPanel(modalBlocker);
+        }
+
+        private void HideModalBlocker()
+        {
+            HidePanel(modalBlocker);
+        }
+
+        private void HideAllModals()
+        {
+            HidePanel(confirmRestartPanel);
+            HidePanel(setupPanel);
+        }
+
+        private void DisableGameButtons()
+        {
+            if (restartButton != null) restartButton.interactable = false;
+            if (newGameButton != null) newGameButton.interactable = false;
+        }
+
+        private void EnableGameButtons()
+        {
+            if (restartButton != null) restartButton.interactable = true;
+            if (newGameButton != null) newGameButton.interactable = true;
         }
     }
 }
