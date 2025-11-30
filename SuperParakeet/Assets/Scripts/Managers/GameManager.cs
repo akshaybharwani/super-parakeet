@@ -64,8 +64,8 @@ namespace CardMatch.Managers
             }
             // Load settings defaults and player overrides
             settings = CardMatcherSettings.Get();
-            rows = CardMatch.Utils.PlayerPrefsManager.GetRows(settings.defaultRows);
-            columns = CardMatch.Utils.PlayerPrefsManager.GetColumns(settings.defaultColumns);
+            rows = Utils.PlayerPrefsManager.GetRows(settings.defaultRows);
+            columns = Utils.PlayerPrefsManager.GetColumns(settings.defaultColumns);
         }
 
         private void Start()
@@ -168,6 +168,13 @@ namespace CardMatch.Managers
             this.rows = rows;
             this.columns = columns;
             InitializeGame();
+        }
+
+        // Quit the application
+        public void QuitGame()
+        {
+            Debug.Log("[GameManager] Quitting game...");
+            Application.Quit();
         }
     }
 }

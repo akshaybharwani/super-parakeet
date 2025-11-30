@@ -25,6 +25,7 @@ namespace CardMatch.UI
 
         [Header("Panels")]
         [SerializeField] private GameObject confirmRestartPanel;
+        [SerializeField] private GameObject confirmQuitPanel;
         [SerializeField] private GameObject setupPanel;
         [SerializeField] private GameObject modalBlocker;
         [SerializeField] private GameObject gameOverPanel;
@@ -99,18 +100,18 @@ namespace CardMatch.UI
             UpdateMatchText();
             UpdateScoreText();
 
-            if (matchProgress != null)
+            /* if (matchProgress != null)
             {
                 matchProgress.type = Image.Type.Filled;
                 matchProgress.fillMethod = Image.FillMethod.Horizontal;
                 matchProgress.fillOrigin = (int)Image.OriginHorizontal.Left;
                 matchProgress.fillAmount = 0f;
-            }
+            } */
 
             if (confirmRestartPanel != null) confirmRestartPanel.SetActive(false);
-            if (setupPanel != null) setupPanel.SetActive(false);
+            //if (setupPanel != null) setupPanel.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
-            if (modalBlocker != null) modalBlocker.SetActive(false);
+            //if (modalBlocker != null) modalBlocker.SetActive(false);
         }
 
         private void Update()

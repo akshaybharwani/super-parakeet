@@ -26,6 +26,12 @@ namespace CardMatch.Managers
         {
             if (!inputEnabled) return;
             
+            if (Input.GetKeyDown(KeyCode.Escape) && GameManager.Instance?.CurrentState != GameState.Paused)
+            {
+                // Handle back button on mobile or Escape key on desktop
+                GameManager.Instance.HUDCanvas.OnQuitClicked();
+            }
+
             // Check game state
             if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing)
             {

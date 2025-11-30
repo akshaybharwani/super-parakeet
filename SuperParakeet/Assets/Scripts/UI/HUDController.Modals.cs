@@ -53,6 +53,25 @@ namespace CardMatch.UI
             GetGameManager()?.ChangeState(GameState.Paused);
         }
 
+        public void OnQuitClicked()
+        {
+            ShowModalBlocker();
+            ShowPanel(confirmQuitPanel);
+            GetGameManager()?.ChangeState(GameState.Paused);
+        }
+
+        public void ConfirmQuit()
+        {
+            GetGameManager()?.QuitGame();
+        }
+
+        public void CancelQuit()
+        {
+            HidePanel(confirmQuitPanel);
+            HideModalBlocker();
+            GetGameManager()?.ChangeState(GameState.Playing);
+        }
+
         public void ConfirmRestart()
         {
             HidePanel(confirmRestartPanel);
