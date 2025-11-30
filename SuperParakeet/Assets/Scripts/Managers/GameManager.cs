@@ -1,5 +1,6 @@
 using UnityEngine;
 using CardMatch.Core;
+using CardMatch;
 using CardMatch.UI;
 
 namespace CardMatch.Managers
@@ -18,8 +19,10 @@ namespace CardMatch.Managers
         [SerializeField] private HUDController hud;
 
         [Header("Game Configuration")]
-        [SerializeField] private int rows = 4;
-        [SerializeField] private int columns = 4;
+        private int rows;
+        private int columns;
+
+        private CardMatcherSettings settings;
 
         private GameState currentState;
         public GameState CurrentState => currentState;
@@ -59,6 +62,10 @@ namespace CardMatch.Managers
                     }
                 }
             }
+            // Load settings defaults and player overrides
+            settings = CardMatcherSettings.Get();
+            rows = CardMatch.Utils.PlayerPrefsManager.GetRows(settings.defaultRows);
+            columns = CardMatch.Utils.PlayerPrefsManager.GetColumns(settings.defaultColumns);
         }
 
         private void Start()

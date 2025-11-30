@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using DG.Tweening;
 using CardMatch.Utils;
+using CardMatch;
 
 namespace CardMatch.UI
 {
@@ -31,15 +32,15 @@ namespace CardMatch.UI
         [SerializeField] private TMP_Dropdown rowsDropdown;
         [SerializeField] private TMP_Dropdown columnsDropdown;
         
-        [Header("Timer Settings")]
-        [SerializeField] private int timePressureThresholdSeconds = 60;
-        [SerializeField] private Color normalTimerColor = Color.white;
-        [SerializeField] private Color pressureTimerColor = Color.red;
+        // These are now provided by CardMatcherSettings
+        private int minGridSize;
+        private int maxGridSize;
+        private float screenMargin;
+        private int timePressureThresholdSeconds;
+        private Color normalTimerColor;
+        private Color pressureTimerColor;
 
-        [Header("Grid Constraints")]
-        [SerializeField] private int minGridSize = 2;
-        [SerializeField] private int maxGridSize = 8;
-        [SerializeField] private float screenMargin = 0.1f;
+        private CardMatcherSettings settings;
 
         private int moves;
         private int calculatedMaxRows;
@@ -55,10 +56,21 @@ namespace CardMatch.UI
             if (restartButton != null) restartButton.onClick.AddListener(OnRestartClicked);
             if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGameClicked);
 
+            // Load settings before initializing dropdown values and runtime UI
+            settings = CardMatcherSettings.Get();
+            minGridSize = settings.minGridSize;
+            maxGridSize = settings.maxGridSize;
+            screenMargin = settings.screenMargin;
+            timePressureThresholdSeconds = settings.timePressureThresholdSeconds;
+            normalTimerColor = settings.normalTimerColor;
+            pressureTimerColor = settings.pressureTimerColor;
+
             InitializeDropdowns();
 
-            var r = PlayerPrefsManager.GetRows(4);
-            var c = PlayerPrefsManager.GetColumns(4);
+            // settings already loaded and applied above
+
+            var r = PlayerPrefsManager.GetRows(settings.defaultRows);
+            var c = PlayerPrefsManager.GetColumns(settings.defaultColumns);
             SetDropdownValue(rowsDropdown, r);
             SetDropdownValue(columnsDropdown, c);
 

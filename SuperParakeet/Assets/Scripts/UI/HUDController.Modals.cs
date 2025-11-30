@@ -75,8 +75,9 @@ namespace CardMatch.UI
 
         public void ApplyNewGame()
         {
-            var rows = GetDropdownValue(rowsDropdown, 4);
-            var cols = GetDropdownValue(columnsDropdown, 4);
+            var settings = CardMatcherSettings.Get();
+            var rows = GetDropdownValue(rowsDropdown, settings.defaultRows);
+            var cols = GetDropdownValue(columnsDropdown, settings.defaultColumns);
 
             // Ensure even number of cards (should already be valid from dropdown options)
             var totalCards = rows * cols;

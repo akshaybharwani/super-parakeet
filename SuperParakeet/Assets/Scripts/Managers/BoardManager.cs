@@ -5,6 +5,7 @@ using CardMatch.Core;
 using CardMatch.Data;
 using CardMatch.Utils;
 using CardMatch.UI;
+using CardMatch;
 
 namespace CardMatch.Managers
 {
@@ -18,15 +19,22 @@ namespace CardMatch.Managers
 
         [Header("Board Configuration")]
         [SerializeField] private Transform boardContainer;
-        [SerializeField] private Vector2 cardSize = new(1f, 1.4f);
-        [SerializeField] private float cardSpacing = 0.2f;
+        // card size/spacing moved to centralized settings
+        public Vector2 CardSize => settings.cardSize;
+        public float CardSpacing => settings.cardSpacing;
 
-        public Vector2 CardSize => cardSize;
-        public float CardSpacing => cardSpacing;
+        private CardMatcherSettings settings;
 
-        [Header("Match Configuration")]        [SerializeField] private float mismatchDelay = 0.6f;
-        [SerializeField] private int matchReward = 100;
-        [SerializeField] private int mismatchPenalty = 5;
+        private void Awake()
+        {
+            settings = CardMatcherSettings.Get();
+        }
+
+        // Match configuration is now derived from settings
+        // match values moved to centralized settings
+        public float MismatchDelay => settings.mismatchDelay;
+        public int MatchReward => settings.matchReward;
+        public int MismatchPenalty => settings.mismatchPenalty;
 
         private readonly List<Card> spawnedCards = new();
         private readonly List<Card> selection = new();
@@ -134,8 +142,8 @@ namespace CardMatch.Managers
             }
 
             // Calculate grid center offset
-            var totalWidth = (columns * cardSize.x) + ((columns - 1) * cardSpacing);
-            var totalHeight = (rows * cardSize.y) + ((rows - 1) * cardSpacing);
+            var totalWidth = (columns * CardSize.x) + ((columns - 1) * CardSpacing);
+            var totalHeight = (rows * CardSize.y) + ((rows - 1) * CardSpacing);
             var startPosition = new Vector3(-totalWidth / 2f, totalHeight / 2f, 0f);
 
             SpawnCards(cardDeck, startPosition);
@@ -154,8 +162,8 @@ namespace CardMatch.Managers
                 for (var col = 0; col < columns; col++)
                 {
                     var position = startPosition + new Vector3(
-                        col * (cardSize.x + cardSpacing),
-                        -row * (cardSize.y + cardSpacing),
+                        col * (CardSize.x + CardSpacing),
+                        -row * (CardSize.y + CardSpacing),
                         0f);
 
                     var card = Instantiate(cardPrefab, boardContainer);
@@ -233,7 +241,7 @@ namespace CardMatch.Managers
                 b.Match();
 
                 matchedPairs++;
-                score += matchReward;
+                score += MatchReward;
 
                 // Play match sound
                 if (AudioManager.Instance != null)
@@ -261,7 +269,7 @@ namespace CardMatch.Managers
                     AudioManager.Instance.PlayMismatch();
                 }
 
-                yield return new WaitForSeconds(mismatchDelay);
+                yield return new WaitForSeconds(MismatchDelay);
 
                 if (a != null)
                 {
@@ -275,7 +283,7 @@ namespace CardMatch.Managers
 
                 yield return new WaitUntil(() => a.State == CardState.Hidden && b.State == CardState.Hidden);
 
-                score = Mathf.Max(0, score - mismatchPenalty);
+                score = Mathf.Max(0, score - MismatchPenalty);
 
                 if (hud != null)
                 {

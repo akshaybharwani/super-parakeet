@@ -1,4 +1,5 @@
 using UnityEngine;
+using CardMatch;
 
 namespace CardMatch.Managers
 {
@@ -10,15 +11,16 @@ namespace CardMatch.Managers
     {
         public static AudioManager Instance { get; private set; }
 
-        [Header("Audio Clips")]
-        [SerializeField] private AudioClip flipClip;
-        [SerializeField] private AudioClip matchClip;
-        [SerializeField] private AudioClip mismatchClip;
-        [SerializeField] private AudioClip gameOverClip;
+        private CardMatcherSettings settings;
+        private AudioClip flipClip => settings != null ? settings.flipClip : null;
+        private AudioClip matchClip => settings != null ? settings.matchClip : null;
+        private AudioClip mismatchClip => settings != null ? settings.mismatchClip : null;
+        private AudioClip gameOverClip => settings != null ? settings.gameOverClip : null;
 
-        [Header("Settings")]
-        [SerializeField] [Range(0f, 1f)] private float masterVolume = 1f;
-        [SerializeField] [Range(0f, 1f)] private float sfxVolume = 1f;
+        private float masterVolume = 1f;
+        private float sfxVolume = 1f;
+
+        // (settings defined above)
 
         private AudioSource audioSource;
 
@@ -42,6 +44,14 @@ namespace CardMatch.Managers
             }
 
             audioSource.playOnAwake = false;
+
+            // Initialize settings and volumes from centralized settings (if available)
+            settings = CardMatcherSettings.Get();
+            if (settings != null)
+            {
+                masterVolume = settings.masterVolume;
+                sfxVolume = settings.sfxVolume;
+            }
         }
 
         public void PlayFlip()
