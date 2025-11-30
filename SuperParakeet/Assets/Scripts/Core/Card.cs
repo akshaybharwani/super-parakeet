@@ -124,6 +124,12 @@ namespace CardMatch.Core
         {
             if (currentState == CardState.Hidden)
             {
+                // Play flip sound
+                if (Managers.AudioManager.Instance != null)
+                {
+                    Managers.AudioManager.Instance.PlayFlip();
+                }
+                
                 FlipTo(true, CardState.Revealed);
             }
         }
@@ -135,10 +141,15 @@ namespace CardMatch.Core
         {
             if (currentState == CardState.Revealed)
             {
+                /* // Play flip sound
+                if (Managers.AudioManager.Instance != null)
+                {
+                    Managers.AudioManager.Instance.PlayFlip();
+                } */
+                
                 FlipTo(false, CardState.Hidden);
             }
         }
-
         private void FlipTo(bool showFront, CardState targetState)
         {
             if (flipSequence != null && flipSequence.active)
